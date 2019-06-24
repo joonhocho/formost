@@ -1,194 +1,197 @@
 import { sleep } from 'ts-jutil/lib/promise';
 import { Field } from './field';
+import { FieldObjectGroup } from './fieldObjectGroup';
 
-describe('Field', () => {
+describe('FieldObjectGroup', () => {
   it('text field', async () => {
     const listener = jest.fn();
-    const trimmedTextField = new Field<string, string, string>({
+
+    const textField = new Field<string, string, string>({
       initialValue: '',
       toInput: (v): string => v,
-      formatInput: (v): string => v.trimLeft(),
       fromInput: (v): string => v.trim(),
-      isEmpty: (v): boolean => !v,
-      validate: (v): string | null => (v.length < 3 ? 'short' : null),
+      required: true,
+      isEmpty: (x): boolean => !x,
       validateAsync: async (v): Promise<string | null> => {
-        if (v === 'a a a') {
-          return 'unavailable';
+        if (v === 'a') {
+          return 'bad';
         }
         return null;
       },
-      onChangeState: listener,
-      required: true,
     });
+
+    const numberField = new Field<number, string, string>({
+      initialValue: 0,
+      toInput: (v): string => String(v),
+      fromInput: (v): number => parseFloat(v),
+      validate: (n): string | null => (n > 100 ? 'big' : null),
+    });
+
+    const group = new FieldObjectGroup({
+      fields: {
+        name: textField,
+        age: numberField,
+      },
+      validate: (x): any => (x.value.age < 10 ? { age: 'young' } : null),
+      onChangeState: listener,
+    });
+    group.getState();
 
     expect(listener).toBeCalledWith(
       {
         changed: false,
+        complete: false,
         disabled: false,
-        empty: true,
-        error: 'required',
+        empty: false,
+        error: { age: 'young', name: 'required' },
         focused: false,
-        initialValue: '',
-        inputValue: '',
-        required: true,
         touched: false,
         valid: false,
         validating: false,
-        value: '',
+        value: { age: 0, name: '' },
       },
       null
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    trimmedTextField.setInputValue(' a ');
+    textField.setInputValue('john');
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
+        complete: true,
         disabled: false,
         empty: false,
-        error: 'short',
+        error: { age: 'young' },
         focused: false,
-        initialValue: '',
-        inputValue: 'a ',
-        required: true,
-        touched: false,
-        valid: false,
-        validating: false,
-        value: 'a',
-      },
-      null
-    );
-    expect(listener.mock.calls.length).toBe(1);
-    listener.mockClear();
-
-    trimmedTextField.setInputValue(' a a a ');
-
-    expect(listener).toBeCalledWith(
-      {
-        changed: true,
-        disabled: false,
-        empty: false,
-        error: null,
-        focused: false,
-        initialValue: '',
-        inputValue: 'a a a ',
-        required: true,
         touched: false,
         valid: false,
         validating: true,
-        value: 'a a a',
+        value: { age: 0, name: 'john' },
       },
       null
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    await sleep(50);
+    numberField.setInputValue(' 50 ');
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
-        disabled: false,
-        empty: false,
-        error: 'unavailable',
-        focused: false,
-        initialValue: '',
-        inputValue: 'a a a ',
-        required: true,
-        touched: false,
-        valid: false,
-        validating: false,
-        value: 'a a a',
-      },
-      null
-    );
-    expect(listener.mock.calls.length).toBe(1);
-    listener.mockClear();
-
-    trimmedTextField.setInputValue(' bbb ');
-
-    expect(listener).toBeCalledWith(
-      {
-        changed: true,
+        complete: true,
         disabled: false,
         empty: false,
         error: null,
         focused: false,
-        initialValue: '',
-        inputValue: 'bbb ',
-        required: true,
         touched: false,
         valid: false,
         validating: true,
-        value: 'bbb',
+        value: { age: 50, name: 'john' },
       },
       null
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    await sleep(50);
+    numberField.setInputValue(' 140 ');
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
+        complete: true,
         disabled: false,
         empty: false,
-        error: null,
+        error: { age: 'big' },
         focused: false,
-        initialValue: '',
-        inputValue: 'bbb ',
-        required: true,
-        touched: false,
-        valid: true,
-        validating: false,
-        value: 'bbb',
-      },
-      null
-    );
-    expect(listener.mock.calls.length).toBe(1);
-    listener.mockClear();
-
-    trimmedTextField.setValue('ccc');
-
-    expect(listener).toBeCalledWith(
-      {
-        changed: true,
-        disabled: false,
-        empty: false,
-        error: null,
-        focused: false,
-        initialValue: '',
-        inputValue: 'ccc',
-        required: true,
         touched: false,
         valid: false,
         validating: true,
-        value: 'ccc',
+        value: { age: 140, name: 'john' },
       },
       null
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    await sleep(50);
+    textField.setState({
+      focused: true,
+      touched: true,
+    });
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
+        complete: true,
         disabled: false,
         empty: false,
-        error: null,
-        focused: false,
-        initialValue: '',
-        inputValue: 'ccc',
-        required: true,
-        touched: false,
-        valid: true,
+        error: { age: 'big' },
+        focused: true,
+        touched: true,
+        valid: false,
+        validating: true,
+        value: { age: 140, name: 'john' },
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
+
+    await sleep(30);
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: { age: 'big' },
+        focused: true,
+        touched: true,
+        valid: false,
         validating: false,
-        value: 'ccc',
+        value: { age: 140, name: 'john' },
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
+
+    textField.setInputValue('a');
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: { age: 'big' },
+        focused: true,
+        touched: true,
+        valid: false,
+        validating: true,
+        value: { age: 140, name: 'a' },
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
+
+    await sleep(30);
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: { age: 'big', name: 'bad' },
+        focused: true,
+        touched: true,
+        valid: false,
+        validating: false,
+        value: { age: 140, name: 'a' },
       },
       null
     );

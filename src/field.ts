@@ -1,5 +1,4 @@
-import { Emitter } from 'ts-jutil/es5/emitter';
-import { shallowEqualObjects } from 'ts-jutil/es5/equal';
+import { State } from './state';
 
 // initialValue = default | server stored value
 // changed = initialValue !== currentValue
@@ -33,12 +32,22 @@ export interface IFieldState<TValue, TInputValue, TError> {
   required: boolean;
   empty: boolean;
   validating: boolean;
-  valid: boolean | null;
+  valid: boolean;
   error: TError | DefaultRequiredError | null;
   focused: boolean;
   touched: boolean;
   disabled: boolean;
 }
+
+export type ValidateFn<TValue, TError> = (value: TValue) => TError | null;
+export type ValidateAsyncFn<TValue, TError> = (
+  value: TValue
+) => Promise<TError | null>;
+export type EqualFn<TValue> = (valueA: TValue, valueB: TValue) => boolean;
+export type EmptyFn<TValue> = (value: TValue) => boolean;
+export type ChangeFieldStateHandler<TValue, TInputValue, TError> = (
+  state: IFieldState<TValue, TInputValue, TError>
+) => void;
 
 export interface IFieldConfig<TValue, TInputValue, TError> {
   initialValue: TValue;
@@ -51,11 +60,11 @@ export interface IFieldConfig<TValue, TInputValue, TError> {
   toInput: (value: TValue) => TInputValue;
   formatInput?: (inputValue: TInputValue) => TInputValue;
   fromInput: (inputValue: TInputValue) => TValue;
-  validate?: (value: TValue) => TError | null;
-  validateAsync?: (value: TValue) => Promise<TError | null>;
-  isEqual?: (valueA: TValue, valueB: TValue) => boolean;
-  isEmpty?: (valueA: TValue) => boolean;
-  onChangeState?: (state: IFieldState<TValue, TInputValue, TError>) => void;
+  validate?: ValidateFn<TValue, TError>;
+  validateAsync?: ValidateAsyncFn<TValue, TError>;
+  isEqual?: EqualFn<TValue>;
+  isEmpty?: EmptyFn<TValue>;
+  onChangeState?: ChangeFieldStateHandler<TValue, TInputValue, TError>;
 }
 
 export const defaultIsEqual = <T>(a: T, b: T): boolean => a === b;
@@ -65,19 +74,17 @@ export const defaultFormatInput = <T>(x: T): T => x;
 export type DefaultRequiredError = 'required';
 export const defaultRequiredError: DefaultRequiredError = 'required';
 
-export class Field<TValue, TInputValue, TError> extends Emitter<
-  Readonly<IFieldState<TValue, TInputValue, TError>>
+export class Field<TValue, TInputValue, TError> extends State<
+  IFieldState<TValue, TInputValue, TError>
 > {
   public toInput: (value: TValue) => TInputValue;
   public formatInput: (inputValue: TInputValue) => TInputValue;
   public fromInput: (inputValue: TInputValue) => TValue;
   public requiredError: TError | DefaultRequiredError;
-  public validate: (value: TValue) => TError | null;
-  public validateAsync?: (value: TValue) => Promise<TError | null>;
-  public isEqual: (valueA: TValue, valueB: TValue) => boolean;
-  public isEmpty: (valueA: TValue) => boolean;
-
-  private _state: IFieldState<TValue, TInputValue, TError>;
+  public validate: ValidateFn<TValue, TError>;
+  public validateAsync?: ValidateAsyncFn<TValue, TError>;
+  public isEqual: EqualFn<TValue>;
+  public isEmpty: EmptyFn<TValue>;
 
   constructor({
     initialValue,
@@ -123,7 +130,7 @@ export class Field<TValue, TInputValue, TError> extends Emitter<
       required: Boolean(required),
       empty,
       validating: error == null && Boolean(validateAsync),
-      valid: error == null && (validateAsync ? null : true),
+      valid: error == null && !validateAsync,
       error,
       focused: Boolean(focused),
       touched: Boolean(touched),
@@ -134,7 +141,7 @@ export class Field<TValue, TInputValue, TError> extends Emitter<
       this.on(onChangeState);
     }
 
-    this.emit(this._state);
+    this.emitState();
     this.maybeValidateAsync(value);
   }
 
@@ -159,12 +166,12 @@ export class Field<TValue, TInputValue, TError> extends Emitter<
           changed: !this.isEqual(_state.initialValue, value),
           empty,
           validating: error == null && Boolean(this.validateAsync),
-          valid: error == null && (this.validateAsync ? null : true),
+          valid: error == null && !this.validateAsync,
           error,
         };
       }
 
-      this.emit(this._state);
+      this.emitState();
       this.maybeValidateAsync(value);
     }
   }
@@ -183,33 +190,13 @@ export class Field<TValue, TInputValue, TError> extends Emitter<
         changed: !this.isEqual(_state.initialValue, value),
         empty,
         validating: error == null && Boolean(this.validateAsync),
-        valid: error == null && (this.validateAsync ? null : true),
+        valid: error == null && !this.validateAsync,
         error,
       };
 
-      this.emit(this._state);
+      this.emitState();
       this.maybeValidateAsync(value);
     }
-  }
-
-  public getState(): Readonly<IFieldState<TValue, TInputValue, TError>> {
-    return this._state;
-  }
-
-  public setState(
-    state: Partial<IFieldState<TValue, TInputValue, TError>>
-  ): boolean {
-    if (
-      !shallowEqualObjects(this._state, state, {
-        keys: Object.keys(state),
-        testKeys: false,
-      })
-    ) {
-      this._state = { ...this._state, ...state };
-      this.emit(this._state);
-      return true;
-    }
-    return false;
   }
 
   private async maybeValidateAsync(value: TValue): Promise<TError | null> {
