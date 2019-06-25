@@ -2,7 +2,6 @@ module.exports = {
   globals: {
     'ts-jest': {
       tsConfig: 'tsconfig.test.json',
-      diagnostics: false,
     },
   },
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],

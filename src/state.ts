@@ -1,7 +1,8 @@
 import { Emitter } from 'ts-jutil/es5/emitter';
 import { shallowEqualObjects } from 'ts-jutil/es5/equal';
+import { nil } from 'tsdef';
 
-export interface IState<TValue, TError> {
+export interface IState<TValue, TError = any> {
   readonly value: TValue; // current value
   readonly changed: boolean; // value !== initialValue
   readonly empty: boolean; // isEmpty(value)
@@ -15,19 +16,24 @@ export interface IState<TValue, TError> {
   readonly skip: boolean; // treat this field as if it's doesn't exists
 }
 
-export type ValidateFn<TState extends IState<any, any>> = (
-  this: State<TState>,
-  value: TState['value']
-) => TState['error'];
+export type ValidateFn<TValue, TError = any, This = any> = (
+  this: This,
+  value: TValue
+) => TError | nil;
 
-export type ValidateAsyncFn<TState extends IState<any, any>> = (
-  this: State<TState>,
-  value: TState['value']
-) => Promise<TState['error']>;
+export type ValidateAsyncFn<TValue, TError = any, This = any> = (
+  this: This,
+  value: TValue
+) => Promise<TError | nil>;
 
-export class State<TState extends IState<any, any>> extends Emitter<TState> {
-  public validate?: ValidateFn<TState>;
-  public validateAsync?: ValidateAsyncFn<TState>;
+export class StateEmitter<TState extends IState<any, any>> extends Emitter<
+  TState
+> {
+  public _value!: TState['value']; // for referencing value type from typescript
+  public _error!: TState['error']; // for referencing error type from typescript
+
+  protected validate?: ValidateFn<TState['value'], TState['error']>;
+  protected validateAsync?: ValidateAsyncFn<TState['value'], TState['error']>;
   protected _state!: TState;
 
   public getState(): TState {
@@ -61,8 +67,8 @@ export class State<TState extends IState<any, any>> extends Emitter<TState> {
         this.setState({
           validating: false,
           valid: error == null,
-          error,
-        } as any);
+          error: error == null ? null : error,
+        } as any); // weird typescript bug
       }
       return error;
     }

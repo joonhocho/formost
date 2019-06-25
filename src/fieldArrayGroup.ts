@@ -1,40 +1,43 @@
 import { setProp } from 'ts-jutil/es5/object';
 import { ExcludeKeys, WritableProps } from 'tsdef';
-import { IState, State, ValidateAsyncFn, ValidateFn } from './state';
+import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 
-export interface IFieldArrayGroupState<TValue, TError>
-  extends IState<TValue[], TError[]> {
+export interface IFieldArrayGroupState<
+  TChild extends StateEmitter<any>,
+  TError = any
+> extends IState<Array<TChild['_value']>, Array<TChild['_error'] | TError>> {
   length: number;
 }
 
-export type FieldArrayGroupStateHandler<TValue, TError> = (
-  state: IFieldArrayGroupState<TValue, TError>
-) => void;
+export type FieldArrayGroupStateHandler<
+  TChild extends StateEmitter<any>,
+  TError = any
+> = (state: IFieldArrayGroupState<TChild, TError>) => void;
 
-export type IFieldArrayGroupFields<TValue, TError> = Array<
-  State<IState<TValue, TError>>
->;
-
-export type FieldArrayGroupValidateFn<TValue, TError> = (
-  state: IFieldArrayGroupState<TValue, TError>
-) => TError[] | null;
-
-export type FieldArrayGroupValidateAsyncFn<TValue, TError> = (
-  state: IFieldArrayGroupState<TValue, TError>
-) => Promise<TError[] | null>;
-
-export interface IFieldArrayGroupConfig<TValue, TError> {
-  items: IFieldArrayGroupFields<TValue, TError>;
-  validate?: ValidateFn<IFieldArrayGroupState<TValue, TError>>;
-  validateAsync?: ValidateAsyncFn<IFieldArrayGroupState<TValue, TError>>;
-  onChangeState?: FieldArrayGroupStateHandler<TValue, TError>;
+export interface IFieldArrayGroupConfig<
+  TChild extends StateEmitter<any>,
+  TError = any
+> {
+  items: TChild[];
+  validate?: ValidateFn<
+    Array<TChild['_value']>,
+    TError[],
+    FieldArrayGroup<TChild, TError>
+  >;
+  validateAsync?: ValidateAsyncFn<
+    Array<TChild['_value']>,
+    TError[],
+    FieldArrayGroup<TChild, TError>
+  >;
+  onChangeState?: FieldArrayGroupStateHandler<TChild, TError>;
   skip?: boolean;
 }
 
-export class FieldArrayGroup<TValue, TError> extends State<
-  IFieldArrayGroupState<TValue, TError>
-> {
-  public items: IFieldArrayGroupFields<TValue, TError>;
+export class FieldArrayGroup<
+  TChild extends StateEmitter<any>,
+  TError = any
+> extends StateEmitter<IFieldArrayGroupState<TChild, TError>> {
+  public items: TChild[];
 
   constructor({
     items,
@@ -42,7 +45,7 @@ export class FieldArrayGroup<TValue, TError> extends State<
     validateAsync,
     onChangeState,
     skip,
-  }: IFieldArrayGroupConfig<TValue, TError>) {
+  }: IFieldArrayGroupConfig<TChild, TError>) {
     super();
 
     this.items = items;
@@ -86,9 +89,9 @@ export class FieldArrayGroup<TValue, TError> extends State<
   }
 
   public reduceChildStates(): WritableProps<
-    ExcludeKeys<IFieldArrayGroupState<TValue, TError>, 'skip'>
+    ExcludeKeys<IFieldArrayGroupState<TChild, TError>, 'skip'>
   > {
-    const value: TValue[] = [];
+    const value: Array<TChild['_value']> = [];
     const error: TError[] = [];
     let changed = false; // ||
     let empty = true; // &&

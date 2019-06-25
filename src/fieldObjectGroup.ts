@@ -1,35 +1,58 @@
 import { keys as getKeys, setProp } from 'ts-jutil/es5/object';
 import { ExcludeKeys, WritableProps } from 'tsdef';
-import { IState, State, ValidateAsyncFn, ValidateFn } from './state';
+import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 
-export interface IFieldObjectGroupState<TValueMap, TErrorMap>
-  extends IState<TValueMap, TErrorMap> {}
+export interface IStateEmitterMap<TValue extends IState<any> = any> {
+  [key: string]: StateEmitter<TValue>;
+}
 
-export type FieldObjectGroupStateHandler<TValueMap, TErrorMap> = (
-  state: IFieldObjectGroupState<TValueMap, TErrorMap>
-) => void;
-
-export type IFieldObjectGroupFields<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> = {
-  [P in keyof TValueMap]: State<IState<TValueMap[P], TErrorMap[P]>>;
+export type TChildValueMap<TChildMap extends IStateEmitterMap> = {
+  [P in keyof TChildMap]: TChildMap[P]['_value'];
 };
 
-export interface IFieldObjectGroupConfig<TValueMap, TErrorMap> {
-  fields: IFieldObjectGroupFields<TValueMap, TErrorMap>;
-  validate?: ValidateFn<IFieldObjectGroupState<TValueMap, TErrorMap>>;
-  validateAsync?: ValidateAsyncFn<IFieldObjectGroupState<TValueMap, TErrorMap>>;
-  onChangeState?: FieldObjectGroupStateHandler<TValueMap, TErrorMap>;
+export type TChildErrorMap<TChildMap extends IStateEmitterMap> = {
+  [P in keyof TChildMap]: TChildMap[P]['_error'];
+};
+
+export interface IFieldObjectGroupState<
+  TChildMap extends IStateEmitterMap,
+  TErrorMap
+>
+  extends IState<
+    TChildValueMap<TChildMap>,
+    Partial<TChildErrorMap<TChildMap>> & Partial<TErrorMap>
+  > {}
+
+export type FieldObjectGroupStateHandler<
+  TChildMap extends IStateEmitterMap,
+  TErrorMap
+> = (state: IFieldObjectGroupState<TChildMap, TErrorMap>) => void;
+
+export interface IFieldObjectGroupConfig<
+  TChildMap extends IStateEmitterMap,
+  TErrorMap
+> {
+  fields: TChildMap;
+  validate?: ValidateFn<
+    TChildValueMap<TChildMap>,
+    TErrorMap,
+    FieldObjectGroup<TChildMap, TErrorMap>
+  >;
+  validateAsync?: ValidateAsyncFn<
+    TChildValueMap<TChildMap>,
+    TErrorMap,
+    FieldObjectGroup<TChildMap, TErrorMap>
+  >;
+  onChangeState?: FieldObjectGroupStateHandler<TChildMap, TErrorMap>;
   skip?: boolean;
 }
 
 export class FieldObjectGroup<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> extends State<IFieldObjectGroupState<TValueMap, TErrorMap>> {
-  public fields: IFieldObjectGroupFields<TValueMap, TErrorMap>;
-  protected names: Array<keyof TValueMap>;
+  TChildMap extends IStateEmitterMap,
+  TErrorMap
+> extends StateEmitter<IFieldObjectGroupState<TChildMap, TErrorMap>> {
+  public fields: TChildMap;
+  protected names: Array<keyof TChildMap>;
 
   constructor({
     fields,
@@ -37,7 +60,7 @@ export class FieldObjectGroup<
     validateAsync,
     onChangeState,
     skip,
-  }: IFieldObjectGroupConfig<TValueMap, TErrorMap>) {
+  }: IFieldObjectGroupConfig<TChildMap, TErrorMap>) {
     super();
 
     const names = getKeys(fields);
@@ -82,10 +105,10 @@ export class FieldObjectGroup<
   }
 
   public reduceChildStates(): WritableProps<
-    ExcludeKeys<IFieldObjectGroupState<TValueMap, TErrorMap>, 'skip'>
+    ExcludeKeys<IFieldObjectGroupState<TChildMap, TErrorMap>, 'skip'>
   > {
-    const value = {} as IFieldObjectGroupState<TValueMap, TErrorMap>['value'];
-    const error = {} as IFieldObjectGroupState<TValueMap, TErrorMap>['error'];
+    const value = {} as IFieldObjectGroupState<TChildMap, TErrorMap>['value'];
+    const error = {} as IFieldObjectGroupState<TChildMap, TErrorMap>['error'];
     let changed = false; // ||
     let empty = true; // &&
     let complete = true; // !empty &&

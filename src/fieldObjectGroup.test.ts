@@ -6,10 +6,10 @@ describe('FieldObjectGroup', () => {
   it('text field', async () => {
     const listener = jest.fn();
 
-    const textField = new Field<string, string, string>({
+    const textField = new Field({
       initialValue: '',
       toInput: (v): string => v,
-      fromInput: (v): string => v.trim(),
+      fromInput: (v: string): string => v.trim(),
       required: true,
       isEmpty: (x): boolean => !x,
       validateAsync: async (v): Promise<string | null> => {
@@ -20,10 +20,10 @@ describe('FieldObjectGroup', () => {
       },
     });
 
-    const numberField = new Field<number, string, string>({
+    const numberField = new Field({
       initialValue: 0,
       toInput: (v): string => String(v),
-      fromInput: (v): number => parseFloat(v),
+      fromInput: (v: string): number => parseFloat(v),
       validate: (n): string | null => (n > 100 ? 'big' : null),
     });
 

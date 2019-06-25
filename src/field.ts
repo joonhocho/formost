@@ -1,4 +1,4 @@
-import { IState, State, ValidateAsyncFn, ValidateFn } from './state';
+import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 
 // initialValue = default | server stored value
 // changed = initialValue !== currentValue
@@ -27,7 +27,7 @@ import { IState, State, ValidateAsyncFn, ValidateFn } from './state';
 export type DefaultRequiredError = 'required';
 export const defaultRequiredError: DefaultRequiredError = 'required';
 
-export interface IFieldState<TValue, TInputValue, TError>
+export interface IFieldState<TValue, TInputValue, TError = any>
   extends IState<TValue, TError | DefaultRequiredError> {
   initialValue: TValue;
   inputValue: TInputValue;
@@ -36,11 +36,11 @@ export interface IFieldState<TValue, TInputValue, TError>
 
 export type EqualFn<TValue> = (valueA: TValue, valueB: TValue) => boolean;
 export type EmptyFn<TValue> = (value: TValue) => boolean;
-export type FieldStateHandler<TValue, TInputValue, TError> = (
+export type FieldStateHandler<TValue, TInputValue, TError = any> = (
   state: IFieldState<TValue, TInputValue, TError>
 ) => void;
 
-export interface IFieldConfig<TValue, TInputValue, TError> {
+export interface IFieldConfig<TValue, TInputValue, TError = any> {
   initialValue: TValue;
   inputValue?: TInputValue;
   required?: boolean;
@@ -52,8 +52,12 @@ export interface IFieldConfig<TValue, TInputValue, TError> {
   toInput: (value: TValue) => TInputValue;
   formatInput?: (inputValue: TInputValue) => TInputValue;
   fromInput: (inputValue: TInputValue) => TValue;
-  validate?: ValidateFn<IFieldState<TValue, TInputValue, TError>>;
-  validateAsync?: ValidateAsyncFn<IFieldState<TValue, TInputValue, TError>>;
+  validate?: ValidateFn<TValue, TError, Field<TValue, TInputValue, TError>>;
+  validateAsync?: ValidateAsyncFn<
+    TValue,
+    TError,
+    Field<TValue, TInputValue, TError>
+  >;
   isEqual?: EqualFn<TValue>;
   isEmpty?: EmptyFn<TValue>;
   onChangeState?: FieldStateHandler<TValue, TInputValue, TError>;
@@ -63,7 +67,7 @@ export const defaultIsEqual = <T>(a: T, b: T): boolean => a === b;
 export const defaultIsEmpty = <T>(a: T): boolean => a == null;
 export const defaultFormatInput = <T>(x: T): T => x;
 
-export class Field<TValue, TInputValue, TError> extends State<
+export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
   IFieldState<TValue, TInputValue, TError>
 > {
   public toInput: (value: TValue) => TInputValue;
@@ -209,7 +213,7 @@ export class Field<TValue, TInputValue, TError> extends State<
       complete: !empty,
       validating: error == null && Boolean(this.validateAsync),
       valid: error == null && !this.validateAsync,
-      error,
+      error: error == null ? null : error,
     };
   }
 }
