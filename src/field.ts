@@ -1,4 +1,4 @@
-import { State } from './state';
+import { IState, State, ValidateAsyncFn, ValidateFn } from './state';
 
 // initialValue = default | server stored value
 // changed = initialValue !== currentValue
@@ -24,28 +24,19 @@ import { State } from './state';
 // inputValue = '2000-01-01' or '2000-0' (incomplete) // in the middle of editing
 // parsedValue = {year: 2000, ...} (could be incomplete) // to be validated in real time
 
-export interface IFieldState<TValue, TInputValue, TError> {
+export type DefaultRequiredError = 'required';
+export const defaultRequiredError: DefaultRequiredError = 'required';
+
+export interface IFieldState<TValue, TInputValue, TError>
+  extends IState<TValue, TError | DefaultRequiredError> {
   initialValue: TValue;
   inputValue: TInputValue;
-  value: TValue;
-  changed: boolean;
   required: boolean;
-  empty: boolean;
-  validating: boolean;
-  valid: boolean;
-  error: TError | DefaultRequiredError | null;
-  focused: boolean;
-  touched: boolean;
-  disabled: boolean;
 }
 
-export type ValidateFn<TValue, TError> = (value: TValue) => TError | null;
-export type ValidateAsyncFn<TValue, TError> = (
-  value: TValue
-) => Promise<TError | null>;
 export type EqualFn<TValue> = (valueA: TValue, valueB: TValue) => boolean;
 export type EmptyFn<TValue> = (value: TValue) => boolean;
-export type ChangeFieldStateHandler<TValue, TInputValue, TError> = (
+export type FieldStateHandler<TValue, TInputValue, TError> = (
   state: IFieldState<TValue, TInputValue, TError>
 ) => void;
 
@@ -57,22 +48,20 @@ export interface IFieldConfig<TValue, TInputValue, TError> {
   focused?: boolean;
   touched?: boolean;
   disabled?: boolean;
+  skip?: boolean;
   toInput: (value: TValue) => TInputValue;
   formatInput?: (inputValue: TInputValue) => TInputValue;
   fromInput: (inputValue: TInputValue) => TValue;
-  validate?: ValidateFn<TValue, TError>;
-  validateAsync?: ValidateAsyncFn<TValue, TError>;
+  validate?: ValidateFn<IFieldState<TValue, TInputValue, TError>>;
+  validateAsync?: ValidateAsyncFn<IFieldState<TValue, TInputValue, TError>>;
   isEqual?: EqualFn<TValue>;
   isEmpty?: EmptyFn<TValue>;
-  onChangeState?: ChangeFieldStateHandler<TValue, TInputValue, TError>;
+  onChangeState?: FieldStateHandler<TValue, TInputValue, TError>;
 }
 
 export const defaultIsEqual = <T>(a: T, b: T): boolean => a === b;
 export const defaultIsEmpty = <T>(a: T): boolean => a == null;
-export const defaultValidate = (): null => null;
 export const defaultFormatInput = <T>(x: T): T => x;
-export type DefaultRequiredError = 'required';
-export const defaultRequiredError: DefaultRequiredError = 'required';
 
 export class Field<TValue, TInputValue, TError> extends State<
   IFieldState<TValue, TInputValue, TError>
@@ -81,8 +70,6 @@ export class Field<TValue, TInputValue, TError> extends State<
   public formatInput: (inputValue: TInputValue) => TInputValue;
   public fromInput: (inputValue: TInputValue) => TValue;
   public requiredError: TError | DefaultRequiredError;
-  public validate: ValidateFn<TValue, TError>;
-  public validateAsync?: ValidateAsyncFn<TValue, TError>;
   public isEqual: EqualFn<TValue>;
   public isEmpty: EmptyFn<TValue>;
 
@@ -94,6 +81,7 @@ export class Field<TValue, TInputValue, TError> extends State<
     required,
     requiredError,
     disabled,
+    skip,
     toInput,
     formatInput,
     fromInput,
@@ -110,7 +98,7 @@ export class Field<TValue, TInputValue, TError> extends State<
     this.fromInput = fromInput;
     this.requiredError =
       requiredError == null ? defaultRequiredError : requiredError;
-    this.validate = validate || defaultValidate;
+    this.validate = validate;
     this.validateAsync = validateAsync;
     this.isEqual = isEqual || defaultIsEqual;
     this.isEmpty = isEmpty || defaultIsEmpty;
@@ -119,22 +107,21 @@ export class Field<TValue, TInputValue, TError> extends State<
       rawInputValue == null ? this.toInput(initialValue) : rawInputValue
     );
     const value = this.fromInput(inputValue);
-    const empty = this.isEmpty(value);
-    const error = empty && required ? this.requiredError : this.validate(value);
+    const req = Boolean(required);
 
     this._state = {
-      initialValue,
-      inputValue,
-      value,
-      changed: !this.isEqual(initialValue, value),
-      required: Boolean(required),
-      empty,
-      validating: error == null && Boolean(validateAsync),
-      valid: error == null && !validateAsync,
-      error,
+      required: req,
       focused: Boolean(focused),
       touched: Boolean(touched),
       disabled: Boolean(disabled),
+      skip: Boolean(skip),
+      initialValue,
+      inputValue,
+      ...this.getPartialStateFromValue({
+        initialValue,
+        value,
+        required: req,
+      }),
     };
 
     if (onChangeState) {
@@ -142,7 +129,7 @@ export class Field<TValue, TInputValue, TError> extends State<
     }
 
     this.emitState();
-    this.maybeValidateAsync(value);
+    this.maybeValidateAsync();
   }
 
   public setInputValue(rawInputValue: TInputValue): void {
@@ -156,61 +143,73 @@ export class Field<TValue, TInputValue, TError> extends State<
           inputValue,
         };
       } else {
-        const empty = this.isEmpty(value);
-        const error =
-          empty && _state.required ? this.requiredError : this.validate(value);
         this._state = {
           ..._state,
           inputValue,
-          value,
-          changed: !this.isEqual(_state.initialValue, value),
-          empty,
-          validating: error == null && Boolean(this.validateAsync),
-          valid: error == null && !this.validateAsync,
-          error,
+          ...this.getPartialStateFromValue({
+            initialValue: _state.initialValue,
+            value,
+            required: _state.required,
+          }),
         };
+        this.maybeValidateAsync();
       }
 
       this.emitState();
-      this.maybeValidateAsync(value);
     }
   }
 
   public setValue(value: TValue): void {
     const { _state } = this;
     if (!this.isEqual(value, _state.value)) {
-      const inputValue = this.formatInput(this.toInput(value));
-      const empty = this.isEmpty(value);
-      const error =
-        empty && _state.required ? this.requiredError : this.validate(value);
       this._state = {
         ..._state,
-        inputValue,
-        value,
-        changed: !this.isEqual(_state.initialValue, value),
-        empty,
-        validating: error == null && Boolean(this.validateAsync),
-        valid: error == null && !this.validateAsync,
-        error,
+        inputValue: this.formatInput(this.toInput(value)),
+        ...this.getPartialStateFromValue({
+          initialValue: _state.initialValue,
+          value,
+          required: _state.required,
+        }),
       };
 
       this.emitState();
-      this.maybeValidateAsync(value);
+      this.maybeValidateAsync();
     }
   }
 
-  private async maybeValidateAsync(value: TValue): Promise<TError | null> {
-    if (this.validateAsync) {
-      const error = await this.validateAsync(value);
-      if (value === this._state.value) {
-        this.setState({
-          validating: false,
-          valid: error == null,
-          error,
-        });
-      }
-      return error;
-    }
-    return null;
+  protected getPartialStateFromValue({
+    initialValue,
+    value,
+    required,
+  }: {
+    initialValue: TValue;
+    value: TValue;
+    required: boolean;
+  }): Pick<
+    IFieldState<TValue, TInputValue, TError>,
+    | 'value'
+    | 'changed'
+    | 'empty'
+    | 'complete'
+    | 'validating'
+    | 'valid'
+    | 'error'
+  > {
+    const empty = this.isEmpty(value);
+    const error =
+      empty && required
+        ? this.requiredError
+        : this.validate
+        ? this.validate(value)
+        : null;
+    return {
+      value,
+      changed: !this.isEqual(initialValue, value),
+      empty,
+      complete: !empty,
+      validating: error == null && Boolean(this.validateAsync),
+      valid: error == null && !this.validateAsync,
+      error,
+    };
   }
 }

@@ -26,11 +26,13 @@ describe('Field', () => {
         changed: false,
         disabled: false,
         empty: true,
+        complete: false,
         error: 'required',
         focused: false,
         initialValue: '',
         inputValue: '',
         required: true,
+        skip: false,
         touched: false,
         valid: false,
         validating: false,
@@ -48,11 +50,13 @@ describe('Field', () => {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: 'short',
         focused: false,
         initialValue: '',
         inputValue: 'a ',
         required: true,
+        skip: false,
         touched: false,
         valid: false,
         validating: false,
@@ -70,11 +74,13 @@ describe('Field', () => {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: null,
         focused: false,
         initialValue: '',
         inputValue: 'a a a ',
         required: true,
+        skip: false,
         touched: false,
         valid: false,
         validating: true,
@@ -85,18 +91,20 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    await sleep(50);
+    await sleep(10);
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: 'unavailable',
         focused: false,
         initialValue: '',
         inputValue: 'a a a ',
         required: true,
+        skip: false,
         touched: false,
         valid: false,
         validating: false,
@@ -114,11 +122,13 @@ describe('Field', () => {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: null,
         focused: false,
         initialValue: '',
         inputValue: 'bbb ',
         required: true,
+        skip: false,
         touched: false,
         valid: false,
         validating: true,
@@ -129,18 +139,20 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    await sleep(50);
+    await sleep(10);
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: null,
         focused: false,
         initialValue: '',
         inputValue: 'bbb ',
         required: true,
+        skip: false,
         touched: false,
         valid: true,
         validating: false,
@@ -158,11 +170,13 @@ describe('Field', () => {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: null,
         focused: false,
         initialValue: '',
         inputValue: 'ccc',
         required: true,
+        skip: false,
         touched: false,
         valid: false,
         validating: true,
@@ -173,18 +187,20 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    await sleep(50);
+    await sleep(10);
 
     expect(listener).toBeCalledWith(
       {
         changed: true,
         disabled: false,
         empty: false,
+        complete: true,
         error: null,
         focused: false,
         initialValue: '',
         inputValue: 'ccc',
         required: true,
+        skip: false,
         touched: false,
         valid: true,
         validating: false,

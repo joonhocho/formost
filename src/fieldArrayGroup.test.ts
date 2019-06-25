@@ -1,8 +1,8 @@
 import { sleep } from 'ts-jutil/lib/promise';
 import { Field } from './field';
-import { FieldObjectGroup } from './fieldObjectGroup';
+import { FieldArrayGroup } from './fieldArrayGroup';
 
-describe('FieldObjectGroup', () => {
+describe('FieldArrayGroup', () => {
   it('text field', async () => {
     const listener = jest.fn();
 
@@ -27,27 +27,26 @@ describe('FieldObjectGroup', () => {
       validate: (n): string | null => (n > 100 ? 'big' : null),
     });
 
-    const group = new FieldObjectGroup({
-      fields: {
-        name: textField,
-        age: numberField,
-      },
-      validate: (x): any => (x.age < 10 ? { age: 'young' } : null),
+    const group = new FieldArrayGroup<string | number, string>({
+      items: [textField, numberField],
+      validate: (x): string[] => (x.length < 2 ? ['too short'] : null),
       onChangeState: listener,
     });
+    group.getState();
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: false,
         complete: false,
         disabled: false,
         empty: false,
-        error: { age: 'young', name: 'required' },
+        error: ['required'],
         focused: false,
         touched: false,
         valid: false,
         validating: false,
-        value: { age: 0, name: '' },
+        value: ['', 0],
         skip: false,
       },
       null
@@ -59,16 +58,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'young' },
+        error: null,
         focused: false,
         touched: false,
         valid: false,
         validating: true,
-        value: { age: 0, name: 'john' },
+        value: ['john', 0],
         skip: false,
       },
       null
@@ -80,6 +80,7 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
@@ -89,7 +90,7 @@ describe('FieldObjectGroup', () => {
         touched: false,
         valid: false,
         validating: true,
-        value: { age: 50, name: 'john' },
+        value: ['john', 50],
         skip: false,
       },
       null
@@ -101,16 +102,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big' },
+        error: ['big'],
         focused: false,
         touched: false,
         valid: false,
         validating: true,
-        value: { age: 140, name: 'john' },
+        value: ['john', 140],
         skip: false,
       },
       null
@@ -125,16 +127,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big' },
+        error: ['big'],
         focused: true,
         touched: true,
         valid: false,
         validating: true,
-        value: { age: 140, name: 'john' },
+        value: ['john', 140],
         skip: false,
       },
       null
@@ -146,16 +149,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big' },
+        error: ['big'],
         focused: true,
         touched: true,
         valid: false,
         validating: false,
-        value: { age: 140, name: 'john' },
+        value: ['john', 140],
         skip: false,
       },
       null
@@ -167,16 +171,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big' },
+        error: ['big'],
         focused: true,
         touched: true,
         valid: false,
         validating: true,
-        value: { age: 140, name: 'a' },
+        value: ['a', 140],
         skip: false,
       },
       null
@@ -188,16 +193,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 2,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big', name: 'bad' },
+        error: ['bad', 'big'],
         focused: true,
         touched: true,
         valid: false,
         validating: false,
-        value: { age: 140, name: 'a' },
+        value: ['a', 140],
         skip: false,
       },
       null
@@ -209,16 +215,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 1,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big' },
+        error: ['big', 'too short'],
         focused: false,
         touched: false,
         valid: false,
         validating: false,
-        value: { age: 140 },
+        value: [140],
         skip: false,
       },
       null
@@ -236,16 +243,17 @@ describe('FieldObjectGroup', () => {
 
     expect(listener).toBeCalledWith(
       {
+        length: 1,
         changed: true,
         complete: true,
         disabled: false,
         empty: false,
-        error: { age: 'big' },
+        error: ['big', 'too short'],
         focused: false,
         touched: false,
         valid: false,
         validating: false,
-        value: { age: 140 },
+        value: [140],
         skip: true,
       },
       null

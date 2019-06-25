@@ -48,13 +48,13 @@
     "prettier": "^1.18.2",
     "ts-jest": "^24.0.2",
     "tscpaths": "^0.0.9",
-    "tsdef": "^0.0.8",
+    "tsdef": "^0.0.9",
     "tslint": "^5.18.0",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.5.2"
   },
   "dependencies": {
-    "ts-jutil": "0.0.52"
+    "ts-jutil": "0.0.54"
   }
 }

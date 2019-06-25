@@ -1,170 +1,132 @@
-import { forEach, reduce } from 'ts-jutil/es5/object';
-import { DefaultRequiredError, Field } from './field';
-import { State } from './state';
+import { keys as getKeys, setProp } from 'ts-jutil/es5/object';
+import { ExcludeKeys, WritableProps } from 'tsdef';
+import { IState, State, ValidateAsyncFn, ValidateFn } from './state';
 
-export interface IFieldObjectGroupState<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> {
-  value: TValueMap;
-  changed: boolean; // ||
-  empty: boolean; // &&
-  complete: boolean; // !empty &&
-  validating: boolean; // ||
-  valid: boolean | null; // &&
-  error: TErrorMap | null;
-  focused: boolean; // ||
-  touched: boolean; // ||
-  disabled: boolean; // &&
-}
+export interface IFieldObjectGroupState<TValueMap, TErrorMap>
+  extends IState<TValueMap, TErrorMap> {}
 
-export type ChangeFieldObjectGroupStateHandler<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> = (state: IFieldObjectGroupState<TValueMap, TErrorMap>) => void;
+export type FieldObjectGroupStateHandler<TValueMap, TErrorMap> = (
+  state: IFieldObjectGroupState<TValueMap, TErrorMap>
+) => void;
 
 export type IFieldObjectGroupFields<
   TValueMap,
   TErrorMap extends { [P in keyof TValueMap]?: any }
 > = {
-  [P in keyof TValueMap]: Field<TValueMap[P], any, TErrorMap[P]>;
+  [P in keyof TValueMap]: State<IState<TValueMap[P], TErrorMap[P]>>;
 };
 
-export type ValidateFieldObjectGroupFn<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> = (state: IFieldObjectGroupState<TValueMap, TErrorMap>) => TErrorMap | null;
-
-export type ValidateAsyncFieldObjectGroupFn<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> = (
-  state: IFieldObjectGroupState<TValueMap, TErrorMap>
-) => Promise<TErrorMap | null>;
-
-export interface IFieldObjectGroupConfig<
-  TValueMap,
-  TErrorMap extends { [P in keyof TValueMap]?: any }
-> {
+export interface IFieldObjectGroupConfig<TValueMap, TErrorMap> {
   fields: IFieldObjectGroupFields<TValueMap, TErrorMap>;
-  validate?: ValidateFieldObjectGroupFn<TValueMap, TErrorMap>;
-  validateAsync?: ValidateAsyncFieldObjectGroupFn<TValueMap, TErrorMap>;
-  onChangeState?: ChangeFieldObjectGroupStateHandler<TValueMap, TErrorMap>;
+  validate?: ValidateFn<IFieldObjectGroupState<TValueMap, TErrorMap>>;
+  validateAsync?: ValidateAsyncFn<IFieldObjectGroupState<TValueMap, TErrorMap>>;
+  onChangeState?: FieldObjectGroupStateHandler<TValueMap, TErrorMap>;
+  skip?: boolean;
 }
 
 export class FieldObjectGroup<
-  TValueMap extends object,
-  TError,
-  TErrorMap = { [P in keyof TValueMap]?: TError | DefaultRequiredError }
+  TValueMap,
+  TErrorMap extends { [P in keyof TValueMap]?: any }
 > extends State<IFieldObjectGroupState<TValueMap, TErrorMap>> {
   public fields: IFieldObjectGroupFields<TValueMap, TErrorMap>;
-
-  public validate?: ValidateFieldObjectGroupFn<TValueMap, TErrorMap>;
-  public validateAsync?: ValidateAsyncFieldObjectGroupFn<TValueMap, TErrorMap>;
+  protected names: Array<keyof TValueMap>;
 
   constructor({
     fields,
     validate,
     validateAsync,
     onChangeState,
+    skip,
   }: IFieldObjectGroupConfig<TValueMap, TErrorMap>) {
     super();
 
+    const names = getKeys(fields);
+
     this.fields = fields;
+    this.names = names;
     this.validate = validate;
     this.validateAsync = validateAsync;
 
     const fieldHandler = (): void => this.refreshState();
-    forEach(fields, (field) => field.on(fieldHandler));
+    for (let i = 0, len = names.length; i < len; i += 1) {
+      fields[names[i]].on(fieldHandler);
+    }
 
     if (onChangeState) {
       this.on(onChangeState);
     }
 
+    this._state = { skip: Boolean(skip) } as any;
     this.refreshState();
   }
 
   public refreshState(): void {
-    const state = this.getDerivedState();
+    const childState = this.reduceChildStates();
 
     if (this.validate) {
-      const errors = this.validate(state);
-      if (errors) {
-        state.error = { ...errors, ...state.error };
+      const errors = this.validate(childState.value);
+      if (errors && getKeys(errors).length) {
+        childState.error = { ...childState.error, ...errors };
       }
     }
 
-    state.validating =
-      state.validating || (state.error == null && Boolean(this.validateAsync));
-    state.valid = state.valid && (state.error == null && !this.validateAsync);
+    childState.validating =
+      childState.validating ||
+      (childState.error == null && Boolean(this.validateAsync));
+    childState.valid =
+      childState.valid && (childState.error == null && !this.validateAsync);
 
-    this._state = state;
+    this._state = setProp(childState, 'skip', this._state.skip);
     this.emitState();
     this.maybeValidateAsync();
   }
 
-  public getDerivedState(): IFieldObjectGroupState<TValueMap, TErrorMap> {
-    const state = reduce(
-      this.fields,
-      (acc, field, name) => {
-        const {
-          value,
-          changed,
-          empty,
-          validating,
-          valid,
-          error,
-          focused,
-          touched,
-          disabled,
-        } = field.getState();
+  public reduceChildStates(): WritableProps<
+    ExcludeKeys<IFieldObjectGroupState<TValueMap, TErrorMap>, 'skip'>
+  > {
+    const value = {} as IFieldObjectGroupState<TValueMap, TErrorMap>['value'];
+    const error = {} as IFieldObjectGroupState<TValueMap, TErrorMap>['error'];
+    let changed = false; // ||
+    let empty = true; // &&
+    let complete = true; // !empty &&
+    let validating = false; // ||
+    let valid = true; // &&
+    let focused = false; // ||
+    let touched = false; // ||
+    let disabled = true; // &&
 
-        acc.value[name] = value;
-        if (error != null) {
-          (acc.error as any)[name] = error;
+    const { fields, names } = this;
+
+    for (let i = 0, len = names.length; i < len; i += 1) {
+      const name = names[i];
+      const fState = fields[name].getState();
+      if (!fState.skip) {
+        value[name] = fState.value;
+        if (fState.error != null) {
+          (error as any)[name] = fState.error;
         }
-        if (changed) acc.changed = true;
-        if (!empty) acc.empty = false;
-        if (empty) acc.complete = false;
-        if (validating) acc.validating = true;
-        if (valid === false) acc.valid = false;
-        if (focused) acc.focused = true;
-        if (touched) acc.touched = true;
-        if (!disabled) acc.disabled = false;
-        return acc;
-      },
-      {
-        value: {},
-        error: {},
-        changed: false, // ||
-        empty: true, // &&
-        complete: true, // !empty &&
-        validating: false, // ||
-        valid: true, // &&
-        focused: false, // ||
-        touched: false, // ||
-        disabled: true, // &&
-      } as IFieldObjectGroupState<TValueMap, TErrorMap>
-    );
-    if (!Object.keys(state.error!).length) {
-      state.error = null;
-    }
-    return state;
-  }
-
-  private async maybeValidateAsync(): Promise<TErrorMap | null> {
-    if (this.validateAsync) {
-      const { value } = this._state;
-      const error = await this.validateAsync(this._state);
-      if (value === this._state.value) {
-        this.setState({
-          validating: false,
-          valid: error == null,
-          error,
-        });
+        if (fState.changed) changed = true;
+        if (!fState.empty) empty = false;
+        if (!fState.complete) complete = false;
+        if (fState.validating) validating = true;
+        if (fState.valid === false) valid = false;
+        if (fState.focused) focused = true;
+        if (fState.touched) touched = true;
+        if (!fState.disabled) disabled = false;
       }
-      return error;
     }
-    return null;
+
+    return {
+      value,
+      error: getKeys(error).length ? error : null,
+      changed,
+      empty,
+      complete,
+      validating,
+      valid,
+      focused,
+      touched,
+      disabled,
+    };
   }
 }
