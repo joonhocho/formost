@@ -33,10 +33,10 @@ export class StateEmitter<TState extends IState<any, any>> extends Emitter<
 > {
   public _value!: TState['value']; // for referencing value type from typescript
   public _error!: TState['error']; // for referencing error type from typescript
+  public _state!: TState;
 
   protected validate?: ValidateFn<TState['value'], TState['error']>;
   protected validateAsync?: ValidateAsyncFn<TState['value'], TState['error']>;
-  protected _state!: TState;
 
   public getState(): TState {
     return this._state;
