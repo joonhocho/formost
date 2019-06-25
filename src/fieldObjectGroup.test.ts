@@ -65,7 +65,7 @@ describe('FieldObjectGroup', () => {
         empty: false,
         error: { age: 'young' },
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: { age: 0, name: 'john' },
@@ -86,7 +86,7 @@ describe('FieldObjectGroup', () => {
         empty: false,
         error: null,
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: { age: 50, name: 'john' },
@@ -107,7 +107,7 @@ describe('FieldObjectGroup', () => {
         empty: false,
         error: { age: 'big' },
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: { age: 140, name: 'john' },
@@ -120,7 +120,6 @@ describe('FieldObjectGroup', () => {
 
     textField.setState({
       focused: true,
-      touched: true,
     });
 
     expect(listener).toBeCalledWith(
@@ -215,7 +214,7 @@ describe('FieldObjectGroup', () => {
         empty: false,
         error: { age: 'big' },
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: false,
         value: { age: 140 },
@@ -242,7 +241,7 @@ describe('FieldObjectGroup', () => {
         empty: false,
         error: { age: 'big' },
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: false,
         value: { age: 140 },

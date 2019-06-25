@@ -11,10 +11,12 @@ export interface IState<TValue, TError = any> {
   readonly valid: boolean; // validated and is valid
   readonly error: TError | null; // validation error or null
   readonly focused: boolean; // focused now
-  readonly touched: boolean; // has focused at least once
+  readonly touched: boolean; // has input changed at least once
   readonly disabled: boolean;
   readonly skip: boolean; // treat this field as if it's doesn't exists
 }
+
+export type EqualFn<TValue> = (valueA: TValue, valueB: TValue) => boolean;
 
 export type ValidateFn<TValue, TError = any, This = any> = (
   this: This,
@@ -40,15 +42,29 @@ export class StateEmitter<TState extends IState<any, any>> extends Emitter<
     return this._state;
   }
 
-  public setState(state: Partial<TState>): boolean {
+  public getNextState(prevState: TState, state: Partial<TState>): TState {
+    return { ...prevState, ...state };
+  }
+
+  public setStateProp<K extends keyof TState>(
+    key: K,
+    value: TState[K]
+  ): boolean {
+    if (this._state[key] !== value) {
+      this.updateState_({ [key]: value } as any);
+      return true;
+    }
+    return false;
+  }
+
+  public setState(update: Partial<TState>): boolean {
     if (
-      !shallowEqualObjects(this._state, state, {
-        keys: Object.keys(state),
+      !shallowEqualObjects(this._state, update, {
+        keys: Object.keys(update),
         testKeys: false,
       })
     ) {
-      this._state = { ...this._state, ...state };
-      this.emitState();
+      this.updateState_(update);
       return true;
     }
     return false;
@@ -58,12 +74,16 @@ export class StateEmitter<TState extends IState<any, any>> extends Emitter<
     this.emit(this._state);
   }
 
+  public isEqual(valueA: TState['value'], valueB: TState['value']): boolean {
+    return valueA === valueB;
+  }
+
   protected async maybeValidateAsync(): Promise<TState['error'] | null> {
     if (this.validateAsync && this._state.error == null) {
       const { value } = this._state;
       const error = await this.validateAsync(value);
       // value may have been changed
-      if (value === this._state.value) {
+      if (this.isEqual(value, this._state.value)) {
         this.setState({
           validating: false,
           valid: error == null,
@@ -73,5 +93,14 @@ export class StateEmitter<TState extends IState<any, any>> extends Emitter<
       return error;
     }
     return null;
+  }
+
+  private updateState_(update: Partial<TState>): void {
+    const { _state } = this;
+    this._state = this.getNextState(_state, update);
+    if (this._state.validating && !_state.validating) {
+      this.maybeValidateAsync();
+    }
+    this.emitState();
   }
 }

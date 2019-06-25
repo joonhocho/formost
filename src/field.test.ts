@@ -4,7 +4,7 @@ import { Field } from './field';
 describe('Field', () => {
   it('text field', async () => {
     const listener = jest.fn();
-    const trimmedTextField = new Field<string, string, string>({
+    const field = new Field<string, string, string>({
       initialValue: '',
       toInput: (v): string => v,
       formatInput: (v): string => v.trimLeft(),
@@ -43,7 +43,7 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    trimmedTextField.setInputValue(' a ');
+    field.setInputValue(' a ');
 
     expect(listener).toBeCalledWith(
       {
@@ -57,7 +57,7 @@ describe('Field', () => {
         inputValue: 'a ',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: false,
         value: 'a',
@@ -67,7 +67,7 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    trimmedTextField.setInputValue(' a a a ');
+    field.setInputValue(' a a a ');
 
     expect(listener).toBeCalledWith(
       {
@@ -81,7 +81,7 @@ describe('Field', () => {
         inputValue: 'a a a ',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: 'a a a',
@@ -105,7 +105,7 @@ describe('Field', () => {
         inputValue: 'a a a ',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: false,
         value: 'a a a',
@@ -115,7 +115,7 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    trimmedTextField.setInputValue(' bbb ');
+    field.setInputValue(' bbb ');
 
     expect(listener).toBeCalledWith(
       {
@@ -129,7 +129,7 @@ describe('Field', () => {
         inputValue: 'bbb ',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: 'bbb',
@@ -153,7 +153,7 @@ describe('Field', () => {
         inputValue: 'bbb ',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
         valid: true,
         validating: false,
         value: 'bbb',
@@ -163,7 +163,7 @@ describe('Field', () => {
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
 
-    trimmedTextField.setValue('ccc');
+    field.setValue('ccc');
 
     expect(listener).toBeCalledWith(
       {
@@ -177,7 +177,7 @@ describe('Field', () => {
         inputValue: 'ccc',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: 'ccc',
@@ -201,7 +201,55 @@ describe('Field', () => {
         inputValue: 'ccc',
         required: true,
         skip: false,
-        touched: false,
+        touched: true,
+        valid: true,
+        validating: false,
+        value: 'ccc',
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
+
+    field.focus();
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        disabled: false,
+        empty: false,
+        complete: true,
+        error: null,
+        focused: true,
+        initialValue: '',
+        inputValue: 'ccc',
+        required: true,
+        skip: false,
+        touched: true,
+        valid: true,
+        validating: false,
+        value: 'ccc',
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
+
+    field.unfocus();
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        disabled: false,
+        empty: false,
+        complete: true,
+        error: null,
+        focused: false,
+        initialValue: '',
+        inputValue: 'ccc',
+        required: true,
+        skip: false,
+        touched: true,
         valid: true,
         validating: false,
         value: 'ccc',

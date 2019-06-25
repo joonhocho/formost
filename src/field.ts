@@ -1,11 +1,17 @@
-import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
+import {
+  EqualFn,
+  IState,
+  StateEmitter,
+  ValidateAsyncFn,
+  ValidateFn,
+} from './state';
 
 // initialValue = default | server stored value
 // changed = initialValue !== currentValue
 // valid = isValid(currentValue)
 // validating = running async validator
 // focused = currently on focus
-// touched = has focused
+// touched = has input changed
 // error = validation error
 // empty = is empty value
 // required
@@ -34,7 +40,6 @@ export interface IFieldState<TValue, TInputValue, TError = any>
   required: boolean;
 }
 
-export type EqualFn<TValue> = (valueA: TValue, valueB: TValue) => boolean;
 export type EmptyFn<TValue> = (value: TValue) => boolean;
 export type FieldStateHandler<TValue, TInputValue, TError = any> = (
   state: IFieldState<TValue, TInputValue, TError>
@@ -67,6 +72,23 @@ export const defaultIsEqual = <T>(a: T, b: T): boolean => a === b;
 export const defaultIsEmpty = <T>(a: T): boolean => a == null;
 export const defaultFormatInput = <T>(x: T): T => x;
 
+const nullState = {
+  initialValue: undefined,
+  inputValue: undefined,
+  required: false,
+  value: undefined,
+  changed: false,
+  empty: true,
+  complete: false,
+  validating: false,
+  valid: false,
+  error: null,
+  focused: false,
+  touched: false,
+  disabled: false,
+  skip: false,
+};
+
 export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
   IFieldState<TValue, TInputValue, TError>
 > {
@@ -74,8 +96,9 @@ export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
   public formatInput: (inputValue: TInputValue) => TInputValue;
   public fromInput: (inputValue: TInputValue) => TValue;
   public requiredError: TError | DefaultRequiredError;
-  public isEqual: EqualFn<TValue>;
   public isEmpty: EmptyFn<TValue>;
+
+  private initialized = false;
 
   constructor({
     initialValue,
@@ -104,116 +127,91 @@ export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
       requiredError == null ? defaultRequiredError : requiredError;
     this.validate = validate;
     this.validateAsync = validateAsync;
-    this.isEqual = isEqual || defaultIsEqual;
+    if (isEqual) {
+      this.isEqual = isEqual;
+    }
     this.isEmpty = isEmpty || defaultIsEmpty;
-
-    const inputValue = this.formatInput(
-      rawInputValue == null ? this.toInput(initialValue) : rawInputValue
-    );
-    const value = this.fromInput(inputValue);
-    const req = Boolean(required);
-
-    this._state = {
-      required: req,
-      focused: Boolean(focused),
-      touched: Boolean(touched),
-      disabled: Boolean(disabled),
-      skip: Boolean(skip),
-      initialValue,
-      inputValue,
-      ...this.getPartialStateFromValue({
-        initialValue,
-        value,
-        required: req,
-      }),
-    };
 
     if (onChangeState) {
       this.on(onChangeState);
     }
 
-    this.emitState();
-    this.maybeValidateAsync();
+    this._state = nullState as any;
+
+    this.setState({
+      required: Boolean(required),
+      focused: Boolean(focused),
+      touched: Boolean(touched),
+      disabled: Boolean(disabled),
+      skip: Boolean(skip),
+      initialValue,
+      inputValue: this.formatInput(
+        rawInputValue == null ? this.toInput(initialValue) : rawInputValue
+      ),
+    });
+
+    this.initialized = true;
   }
 
-  public setInputValue(rawInputValue: TInputValue): void {
-    const inputValue = this.formatInput(rawInputValue);
-    const { _state } = this;
-    if (inputValue !== _state.inputValue) {
-      const value = this.fromInput(inputValue);
-      if (this.isEqual(value, _state.value)) {
-        this._state = {
-          ..._state,
-          inputValue,
-        };
-      } else {
-        this._state = {
-          ..._state,
-          inputValue,
-          ...this.getPartialStateFromValue({
-            initialValue: _state.initialValue,
-            value,
-            required: _state.required,
-          }),
-        };
-        this.maybeValidateAsync();
+  public setInputValue = (inputValue: TInputValue): boolean =>
+    this.setStateProp('inputValue', inputValue);
+
+  public setValue = (value: TValue): boolean =>
+    this.setStateProp('value', value);
+
+  public focus = (): boolean => this.setStateProp('focused', true);
+
+  public unfocus = (): boolean => this.setStateProp('focused', false);
+
+  public getNextState(
+    prevState: IFieldState<TValue, TInputValue, TError> | typeof nullState,
+    update: Partial<IFieldState<TValue, TInputValue, TError>>
+  ): IFieldState<TValue, TInputValue, TError> {
+    const state = { ...prevState, ...update };
+
+    const inputChanged = state.inputValue !== prevState.inputValue;
+    if (inputChanged) {
+      state.inputValue = this.formatInput(state.inputValue!);
+      state.value = this.fromInput(state.inputValue);
+    }
+
+    const value = state.value!;
+    const valueChanged = value !== prevState.value;
+    if (valueChanged) {
+      if (!inputChanged) {
+        state.inputValue = this.formatInput(this.toInput(value));
       }
-
-      this.emitState();
+      state.empty = this.isEmpty(value);
+      state.complete = !state.empty;
     }
-  }
 
-  public setValue(value: TValue): void {
-    const { _state } = this;
-    if (!this.isEqual(value, _state.value)) {
-      this._state = {
-        ..._state,
-        inputValue: this.formatInput(this.toInput(value)),
-        ...this.getPartialStateFromValue({
-          initialValue: _state.initialValue,
-          value,
-          required: _state.required,
-        }),
-      };
-
-      this.emitState();
-      this.maybeValidateAsync();
+    const { initialized } = this;
+    if (initialized && state.inputValue !== prevState.inputValue) {
+      state.touched = true;
     }
-  }
 
-  protected getPartialStateFromValue({
-    initialValue,
-    value,
-    required,
-  }: {
-    initialValue: TValue;
-    value: TValue;
-    required: boolean;
-  }): Pick<
-    IFieldState<TValue, TInputValue, TError>,
-    | 'value'
-    | 'changed'
-    | 'empty'
-    | 'complete'
-    | 'validating'
-    | 'valid'
-    | 'error'
-  > {
-    const empty = this.isEmpty(value);
-    const error =
-      empty && required
-        ? this.requiredError
-        : this.validate
-        ? this.validate(value)
-        : null;
-    return {
-      value,
-      changed: !this.isEqual(initialValue, value),
-      empty,
-      complete: !empty,
-      validating: error == null && Boolean(this.validateAsync),
-      valid: error == null && !this.validateAsync,
-      error: error == null ? null : error,
-    };
+    if (valueChanged || state.initialValue !== prevState.initialValue) {
+      state.changed = !this.isEqual(value, state.initialValue!);
+    }
+
+    const valueTrulyChanged =
+      valueChanged && (!initialized || !this.isEqual(value, prevState.value!));
+    if (valueTrulyChanged || state.required !== prevState.required) {
+      const error =
+        state.empty && state.required
+          ? this.requiredError
+          : this.validate
+          ? this.validate(value)
+          : null;
+
+      state.error = error == null ? null : error;
+    }
+
+    if (valueTrulyChanged || state.error !== prevState.error) {
+      state.valid = state.error == null && !this.validateAsync;
+      state.validating = state.error == null && Boolean(this.validateAsync);
+    }
+
+    return state as any;
   }
 }

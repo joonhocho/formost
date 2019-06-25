@@ -66,7 +66,7 @@ describe('FieldArrayGroup', () => {
         empty: false,
         error: null,
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: ['john', 0],
@@ -88,7 +88,7 @@ describe('FieldArrayGroup', () => {
         empty: false,
         error: null,
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: ['john', 50],
@@ -110,7 +110,7 @@ describe('FieldArrayGroup', () => {
         empty: false,
         error: ['big'],
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: true,
         value: ['john', 140],
@@ -123,7 +123,6 @@ describe('FieldArrayGroup', () => {
 
     textField.setState({
       focused: true,
-      touched: true,
     });
 
     expect(listener).toBeCalledWith(
@@ -223,7 +222,7 @@ describe('FieldArrayGroup', () => {
         empty: false,
         error: ['big', 'too short'],
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: false,
         value: [140],
@@ -251,7 +250,7 @@ describe('FieldArrayGroup', () => {
         empty: false,
         error: ['big', 'too short'],
         focused: false,
-        touched: false,
+        touched: true,
         valid: false,
         validating: false,
         value: [140],
