@@ -1,4 +1,3 @@
-import { setProp } from 'ts-jutil/es5/object';
 import { ExcludeKeys, WritableProps } from 'tsdef';
 import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 
@@ -53,10 +52,9 @@ export class FieldArrayGroup<
     this.validateAsync = validateAsync;
     this._state = { skip: Boolean(skip) } as any;
 
-    const fieldHandler = (): void => this.refreshState();
-    for (let i = 0, len = items.length; i < len; i += 1) {
-      items[i].on(fieldHandler);
-    }
+    this.forEach((item) => {
+      item.on(this.refreshState);
+    });
 
     if (onChangeState) {
       this.on(onChangeState);
@@ -65,7 +63,7 @@ export class FieldArrayGroup<
     this.refreshState();
   }
 
-  public refreshState(): void {
+  public refreshState = (): boolean => {
     const childState = this.reduceChildStates();
 
     if (this.validate) {
@@ -77,16 +75,17 @@ export class FieldArrayGroup<
       }
     }
 
-    childState.validating =
-      childState.validating ||
-      (childState.error == null && Boolean(this.validateAsync));
-    childState.valid =
-      childState.valid && (childState.error == null && !this.validateAsync);
+    if (!childState.validating) {
+      childState.validating =
+        childState.error == null && Boolean(this.validateAsync);
+    }
 
-    this._state = setProp(childState, 'skip', this._state.skip);
-    this.emitState();
-    this.maybeValidateAsync();
-  }
+    if (childState.valid) {
+      childState.valid = childState.error == null && !this.validateAsync;
+    }
+
+    return this.setState(childState);
+  };
 
   public reduceChildStates(): WritableProps<
     ExcludeKeys<IFieldArrayGroupState<TChild, TError>, 'skip'>
@@ -103,7 +102,6 @@ export class FieldArrayGroup<
     let disabled = true; // &&
 
     const { items } = this;
-
     for (let i = 0, len = items.length; i < len; i += 1) {
       const field = items[i];
       const fState = field.getState();
@@ -137,4 +135,19 @@ export class FieldArrayGroup<
       disabled,
     };
   }
+
+  public forEach(fn: (field: TChild) => void): void {
+    for (let i = 0, items = this.items, len = items.length; i < len; i += 1) {
+      fn(items[i]);
+    }
+  }
+
+  public reset = (): boolean => {
+    this.forEach((item) => {
+      item.off(this.refreshState);
+      item.reset();
+      item.on(this.refreshState);
+    });
+    return this.refreshState();
+  };
 }

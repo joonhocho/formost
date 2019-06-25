@@ -214,4 +214,14 @@ export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
 
     return state as any;
   }
+
+  public reset = (): boolean => {
+    this.initialized = false;
+    const changed = this.setState({
+      value: this._state.initialValue,
+      touched: false,
+    });
+    this.initialized = true;
+    return changed;
+  };
 }

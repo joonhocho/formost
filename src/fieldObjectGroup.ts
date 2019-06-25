@@ -1,4 +1,4 @@
-import { keys as getKeys, setProp } from 'ts-jutil/es5/object';
+import { keys as getKeys } from 'ts-jutil/es5/object';
 import { ExcludeKeys, WritableProps } from 'tsdef';
 import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 
@@ -70,10 +70,9 @@ export class FieldObjectGroup<
     this.validate = validate;
     this.validateAsync = validateAsync;
 
-    const fieldHandler = (): void => this.refreshState();
-    for (let i = 0, len = names.length; i < len; i += 1) {
-      fields[names[i]].on(fieldHandler);
-    }
+    this.forEach((item) => {
+      item.on(this.refreshState);
+    });
 
     if (onChangeState) {
       this.on(onChangeState);
@@ -83,7 +82,7 @@ export class FieldObjectGroup<
     this.refreshState();
   }
 
-  public refreshState(): void {
+  public refreshState = (): boolean => {
     const childState = this.reduceChildStates();
 
     if (this.validate) {
@@ -93,16 +92,17 @@ export class FieldObjectGroup<
       }
     }
 
-    childState.validating =
-      childState.validating ||
-      (childState.error == null && Boolean(this.validateAsync));
-    childState.valid =
-      childState.valid && (childState.error == null && !this.validateAsync);
+    if (!childState.validating) {
+      childState.validating =
+        childState.error == null && Boolean(this.validateAsync);
+    }
 
-    this._state = setProp(childState, 'skip', this._state.skip);
-    this.emitState();
-    this.maybeValidateAsync();
-  }
+    if (childState.valid) {
+      childState.valid = childState.error == null && !this.validateAsync;
+    }
+
+    return this.setState(childState);
+  };
 
   public reduceChildStates(): WritableProps<
     ExcludeKeys<IFieldObjectGroupState<TChildMap, TErrorMap>, 'skip'>
@@ -152,4 +152,20 @@ export class FieldObjectGroup<
       disabled,
     };
   }
+
+  public forEach(fn: (field: TChildMap[keyof TChildMap]) => void): void {
+    const { fields, names } = this;
+    for (let i = 0, len = names.length; i < len; i += 1) {
+      fn(fields[names[i]]);
+    }
+  }
+
+  public reset = (): boolean => {
+    this.forEach((item) => {
+      item.off(this.refreshState);
+      item.reset();
+      item.on(this.refreshState);
+    });
+    return this.refreshState();
+  };
 }

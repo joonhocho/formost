@@ -251,5 +251,52 @@ describe('FieldObjectGroup', () => {
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
+
+    await sleep(10);
+
+    expect(listener).not.toBeCalled();
+    expect(listener.mock.calls.length).toBe(0);
+    listener.mockClear();
+
+    group.reset();
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: false,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: { age: 'young' },
+        focused: false,
+        touched: false,
+        valid: false,
+        validating: false,
+        value: { age: 0 },
+        skip: true,
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+
+    await sleep(10);
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: false,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: { age: 'young' },
+        focused: false,
+        touched: false,
+        valid: false,
+        validating: false,
+        value: { age: 0 },
+        skip: true,
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
   });
 });

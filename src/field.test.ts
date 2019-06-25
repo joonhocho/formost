@@ -258,5 +258,29 @@ describe('Field', () => {
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
+
+    field.reset();
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: false,
+        disabled: false,
+        empty: true,
+        complete: false,
+        error: 'required',
+        focused: false,
+        initialValue: '',
+        inputValue: '',
+        required: true,
+        skip: false,
+        touched: false,
+        valid: false,
+        validating: false,
+        value: '',
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
   });
 });

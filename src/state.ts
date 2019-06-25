@@ -28,9 +28,9 @@ export type ValidateAsyncFn<TValue, TError = any, This = any> = (
   value: TValue
 ) => Promise<TError | nil>;
 
-export class StateEmitter<TState extends IState<any, any>> extends Emitter<
-  TState
-> {
+export abstract class StateEmitter<
+  TState extends IState<any, any>
+> extends Emitter<TState> {
   public _value!: TState['value']; // for referencing value type from typescript
   public _error!: TState['error']; // for referencing error type from typescript
   public _state!: TState;
@@ -77,6 +77,8 @@ export class StateEmitter<TState extends IState<any, any>> extends Emitter<
   public isEqual(valueA: TState['value'], valueB: TState['value']): boolean {
     return valueA === valueB;
   }
+
+  public abstract reset(): void;
 
   protected async maybeValidateAsync(): Promise<TState['error'] | null> {
     if (this.validateAsync && this._state.error == null) {
