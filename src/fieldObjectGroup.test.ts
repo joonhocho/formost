@@ -298,5 +298,35 @@ describe('FieldObjectGroup', () => {
     );
     expect(listener.mock.calls.length).toBe(1);
     listener.mockClear();
+
+    group.unsubField(numberField);
+
+    numberField.setInputValue(' 140 ');
+
+    expect(listener.mock.calls.length).toBe(0);
+    listener.mockClear();
+
+    group.subField(numberField);
+
+    numberField.setInputValue(' 130 ');
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: { age: 'big' },
+        focused: false,
+        touched: true,
+        valid: false,
+        validating: false,
+        value: { age: 130 },
+        skip: true,
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
   });
 });

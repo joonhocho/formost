@@ -28,7 +28,7 @@ describe('FieldArrayGroup', () => {
     });
 
     const group = new FieldArrayGroup({
-      items: [textField, numberField],
+      fields: [textField, numberField],
       validate(x): string[] | null {
         return x.length < 2 ? ['too short'] : null;
       },
@@ -304,6 +304,37 @@ describe('FieldArrayGroup', () => {
         value: [0],
         skip: true,
         length: 1,
+      },
+      null
+    );
+    expect(listener.mock.calls.length).toBe(1);
+    listener.mockClear();
+
+    group.unsubField(numberField);
+
+    numberField.setInputValue(' 140 ');
+
+    expect(listener.mock.calls.length).toBe(0);
+    listener.mockClear();
+
+    group.subField(numberField);
+
+    numberField.setInputValue(' 130 ');
+
+    expect(listener).toBeCalledWith(
+      {
+        changed: true,
+        complete: true,
+        disabled: false,
+        empty: false,
+        error: ['big', 'too short'],
+        length: 1,
+        focused: false,
+        touched: true,
+        valid: false,
+        validating: false,
+        value: [130],
+        skip: true,
       },
       null
     );

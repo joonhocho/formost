@@ -70,8 +70,8 @@ export class FieldObjectGroup<
     this.validate = validate;
     this.validateAsync = validateAsync;
 
-    this.forEach((item) => {
-      item.on(this.refreshState);
+    this.forEach((field) => {
+      field.on(this.refreshState);
     });
 
     if (onChangeState) {
@@ -153,18 +153,33 @@ export class FieldObjectGroup<
     };
   }
 
-  public forEach(fn: (field: TChildMap[keyof TChildMap]) => void): void {
+  public forEach(
+    fn: <Key extends keyof TChildMap>(
+      field: TChildMap[Key],
+      name: Key,
+      fields: TChildMap
+    ) => void
+  ): void {
     const { fields, names } = this;
     for (let i = 0, len = names.length; i < len; i += 1) {
-      fn(fields[names[i]]);
+      const name = names[i];
+      fn(fields[name], name, fields);
     }
   }
 
+  public subField(field: TChildMap[keyof TChildMap]): void {
+    field.on(this.refreshState);
+  }
+
+  public unsubField(field: TChildMap[keyof TChildMap]): void {
+    field.off(this.refreshState);
+  }
+
   public reset = (): boolean => {
-    this.forEach((item) => {
-      item.off(this.refreshState);
-      item.reset();
-      item.on(this.refreshState);
+    this.forEach((field) => {
+      field.off(this.refreshState);
+      field.reset();
+      field.on(this.refreshState);
     });
     return this.refreshState();
   };

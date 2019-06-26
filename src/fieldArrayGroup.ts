@@ -17,7 +17,7 @@ export interface IFieldArrayGroupConfig<
   TChild extends StateEmitter<any>,
   TError = any
 > {
-  items: TChild[];
+  fields: TChild[];
   validate?: ValidateFn<
     Array<TChild['_value']>,
     TError[],
@@ -36,10 +36,10 @@ export class FieldArrayGroup<
   TChild extends StateEmitter<any>,
   TError = any
 > extends StateEmitter<IFieldArrayGroupState<TChild, TError>> {
-  public items: TChild[];
+  public fields: TChild[];
 
   constructor({
-    items,
+    fields,
     validate,
     validateAsync,
     onChangeState,
@@ -47,13 +47,13 @@ export class FieldArrayGroup<
   }: IFieldArrayGroupConfig<TChild, TError>) {
     super();
 
-    this.items = items;
+    this.fields = fields;
     this.validate = validate;
     this.validateAsync = validateAsync;
     this._state = { skip: Boolean(skip) } as any;
 
-    this.forEach((item) => {
-      item.on(this.refreshState);
+    this.forEach((field) => {
+      field.on(this.refreshState);
     });
 
     if (onChangeState) {
@@ -101,9 +101,9 @@ export class FieldArrayGroup<
     let touched = false; // ||
     let disabled = true; // &&
 
-    const { items } = this;
-    for (let i = 0, len = items.length; i < len; i += 1) {
-      const field = items[i];
+    const { fields } = this;
+    for (let i = 0, len = fields.length; i < len; i += 1) {
+      const field = fields[i];
       const fState = field.getState();
       if (!fState.skip) {
         value.push(fState.value);
@@ -136,17 +136,31 @@ export class FieldArrayGroup<
     };
   }
 
-  public forEach(fn: (field: TChild) => void): void {
-    for (let i = 0, items = this.items, len = items.length; i < len; i += 1) {
-      fn(items[i]);
+  public subField(field: TChild): void {
+    field.on(this.refreshState);
+  }
+
+  public unsubField(field: TChild): void {
+    field.off(this.refreshState);
+  }
+
+  public forEach(
+    fn: (field: TChild, index: number, fields: TChild[]) => void
+  ): void {
+    for (
+      let i = 0, fields = this.fields, len = fields.length;
+      i < len;
+      i += 1
+    ) {
+      fn(fields[i], i, fields);
     }
   }
 
   public reset = (): boolean => {
-    this.forEach((item) => {
-      item.off(this.refreshState);
-      item.reset();
-      item.on(this.refreshState);
+    this.forEach((field) => {
+      field.off(this.refreshState);
+      field.reset();
+      field.on(this.refreshState);
     });
     return this.refreshState();
   };
