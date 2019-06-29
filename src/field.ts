@@ -69,7 +69,8 @@ export interface IFieldConfig<TValue, TInputValue, TError = any> {
 }
 
 export const defaultIsEqual = <T>(a: T, b: T): boolean => a === b;
-export const defaultIsEmpty = <T>(a: T): boolean => a == null;
+export const defaultIsEmpty = <T>(a: T): boolean =>
+  a == null || (a as any) === '';
 export const defaultFormatInput = <T>(x: T): T => x;
 
 const nullState = {
