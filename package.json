@@ -1,6 +1,6 @@
 {
   "name": "formost",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Event based reactive form field model written in TypeScript",
   "keywords": [
     "form",
@@ -55,6 +55,6 @@
     "typescript": "^3.5.2"
   },
   "dependencies": {
-    "ts-jutil": "0.0.54"
+    "ts-jutil": "0.0.56"
   }
 }
