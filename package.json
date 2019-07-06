@@ -1,6 +1,6 @@
 {
   "name": "formost",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Event based reactive form field model written in TypeScript",
   "keywords": [
     "form",
