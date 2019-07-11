@@ -3653,10 +3653,10 @@ ts-jest@^24.0.2:
     semver "^5.5"
     yargs-parser "10.x"
 
-ts-jutil@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.npmjs.org/ts-jutil/-/ts-jutil-1.0.5.tgz#9f920d8179fd2f8b47e7a3a0d6ee670f71f1f3a6"
-  integrity sha512-5fDv7qSwlKp4MqSPJyw28yn1LiArQ9JkWjbmC80mwBOWKNLBLS73eIXud+Qw9UesQchkQbf8LrVudvtSBSRmiw==
+ts-jutil@^1.0.9:
+  version "1.0.9"
+  resolved "https://registry.npmjs.org/ts-jutil/-/ts-jutil-1.0.9.tgz#2a73c1b12824fa9231d5eb13cb58f7c4ff8d0f74"
+  integrity sha512-GOarEWgh/aTKYKk5FPPyL6DgXjwUCJWiC/AUAr+RvE9SCd7K/50i0ePGH/Ka7MKToqdCLEgAT4OpPtCQvNyOnQ==
 
 tscpaths@^0.0.9:
   version "0.0.9"
@@ -3666,10 +3666,10 @@ tscpaths@^0.0.9:
     commander "^2.20.0"
     globby "^9.2.0"
 
-tsdef@^0.0.9:
-  version "0.0.9"
-  resolved "https://registry.npmjs.org/tsdef/-/tsdef-0.0.9.tgz#67a1c3c980deb466e8c74f2d05f59349f6fd871a"
-  integrity sha512-T+MAiSgjwWIAjvEcY2qYQFwXzgUK3mPl7gDIWbeEUmTIbChvAvIccv88K06rdkTF+Q7q5QvuHuQ+VFPxdsvSdg==
+tsdef@^0.0.13:
+  version "0.0.13"
+  resolved "https://registry.npmjs.org/tsdef/-/tsdef-0.0.13.tgz#c71c2bd756c84887386ac8539ace63a38bc114e1"
+  integrity sha512-Twcdol23BQ+J+WD3NYhqusB7vvCDdK2bvcXnivgHu4xjrxnngUshgB+SWs2FN+I6BxY6BRkaE2KllO403GwbKA==
 
 tslib@1.9.0:
   version "1.9.0"
