@@ -1,4 +1,4 @@
-import { keys as getKeys } from 'ts-jutil/es5/object';
+import { getKeys } from 'ts-jutil/dist/node/object/getKeys';
 import { ExcludeKeys, WritableProps } from 'tsdef';
 import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 

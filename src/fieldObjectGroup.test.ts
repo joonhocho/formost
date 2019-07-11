@@ -1,4 +1,4 @@
-import { sleep } from 'ts-jutil/es5/promise';
+import { sleep } from 'ts-jutil/dist/node/promise/sleep';
 import { Field } from './field';
 import { FieldObjectGroup } from './fieldObjectGroup';
 
