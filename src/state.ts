@@ -1,5 +1,4 @@
-import { Emitter } from 'ts-jutil/dist/node/Emitter';
-import { shallowEqualObjects } from 'ts-jutil/dist/node/equal/shallowEqualObjects';
+import { Emitter, shallowEqualObjects } from 'ts-jutil';
 import { nil } from 'tsdef';
 
 export interface IState<TValue, TError = any> {

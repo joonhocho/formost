@@ -1,4 +1,4 @@
-import { getKeys } from 'ts-jutil/dist/node/object/getKeys';
+import { getKeys } from 'ts-jutil';
 import { ExcludeKeys, WritableProps } from 'tsdef';
 import { IState, StateEmitter, ValidateAsyncFn, ValidateFn } from './state';
 
