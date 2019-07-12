@@ -1,6 +1,6 @@
 {
   "name": "formost",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Event based reactive form field model written in TypeScript",
   "keywords": [
     "form",
@@ -45,7 +45,7 @@
   },
   "pre-commit": "precommit",
   "dependencies": {
-    "ts-jutil": "^1.0.10"
+    "ts-jutil": "^1.0.11"
   },
   "peerDependencies": {
     "tslib": "^1.10.0"
