@@ -1,8 +1,8 @@
 import { sleep } from 'ts-jutil';
 import { Field } from './field';
 
-describe('Field', () => {
-  it('text field', async () => {
+describe('Field', (): void => {
+  it('text field', async (): Promise<void> => {
     const listener = jest.fn();
     const field = new Field<string, string, string>({
       initialValue: '',

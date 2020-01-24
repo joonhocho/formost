@@ -52,7 +52,7 @@ export class FieldArrayGroup<
     this.validateAsync = validateAsync;
     this._state = { skip: Boolean(skip) } as any;
 
-    this.forEach((field) => {
+    this.forEach((field): void => {
       field.on(this.refreshState);
     });
 
@@ -102,9 +102,9 @@ export class FieldArrayGroup<
     let disabled = true; // &&
 
     const { fields } = this;
+
     for (let i = 0, len = fields.length; i < len; i += 1) {
-      const field = fields[i];
-      const fState = field.getState();
+      const fState = fields[i].getState();
       if (!fState.skip) {
         value.push(fState.value);
         if (fState.error != null) {
@@ -114,7 +114,7 @@ export class FieldArrayGroup<
         if (!fState.empty) empty = false;
         if (!fState.complete) complete = false;
         if (fState.validating) validating = true;
-        if (fState.valid === false) valid = false;
+        if (!fState.valid) valid = false;
         if (fState.focused) focused = true;
         if (fState.touched) touched = true;
         if (!fState.disabled) disabled = false;
@@ -157,7 +157,7 @@ export class FieldArrayGroup<
   }
 
   public reset = (): boolean => {
-    this.forEach((field) => {
+    this.forEach((field): void => {
       field.off(this.refreshState);
       field.reset();
       field.on(this.refreshState);

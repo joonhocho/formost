@@ -140,11 +140,11 @@ export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
     this._state = nullState as any;
 
     this.setState({
-      required: Boolean(required),
-      focused: Boolean(focused),
-      touched: Boolean(touched),
-      disabled: Boolean(disabled),
-      skip: Boolean(skip),
+      required: !!required,
+      focused: !!focused,
+      touched: !!touched,
+      disabled: !!disabled,
+      skip: !!skip,
       initialValue,
       inputValue: this.formatInput(
         rawInputValue == null ? this.toInput(initialValue) : rawInputValue
@@ -210,7 +210,7 @@ export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
 
     if (valueTrulyChanged || state.error !== prevState.error) {
       state.valid = state.error == null && !this.validateAsync;
-      state.validating = state.error == null && Boolean(this.validateAsync);
+      state.validating = state.error == null && !!this.validateAsync;
     }
 
     return state as any;

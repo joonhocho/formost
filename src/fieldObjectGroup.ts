@@ -70,7 +70,7 @@ export class FieldObjectGroup<
     this.validate = validate;
     this.validateAsync = validateAsync;
 
-    this.forEach((field) => {
+    this.forEach((field): void => {
       field.on(this.refreshState);
     });
 
@@ -118,6 +118,8 @@ export class FieldObjectGroup<
     let touched = false; // ||
     let disabled = true; // &&
 
+    let hasError = false;
+
     const { fields, names } = this;
 
     for (let i = 0, len = names.length; i < len; i += 1) {
@@ -127,12 +129,13 @@ export class FieldObjectGroup<
         value[name] = fState.value;
         if (fState.error != null) {
           (error as any)[name] = fState.error;
+          hasError = true;
         }
         if (fState.changed) changed = true;
         if (!fState.empty) empty = false;
         if (!fState.complete) complete = false;
         if (fState.validating) validating = true;
-        if (fState.valid === false) valid = false;
+        if (!fState.valid) valid = false;
         if (fState.focused) focused = true;
         if (fState.touched) touched = true;
         if (!fState.disabled) disabled = false;
@@ -141,7 +144,7 @@ export class FieldObjectGroup<
 
     return {
       value,
-      error: getKeys(error).length ? error : null,
+      error: hasError ? error : null,
       changed,
       empty,
       complete,
@@ -151,6 +154,14 @@ export class FieldObjectGroup<
       touched,
       disabled,
     };
+  }
+
+  public subField(field: TChildMap[keyof TChildMap]): void {
+    field.on(this.refreshState);
+  }
+
+  public unsubField(field: TChildMap[keyof TChildMap]): void {
+    field.off(this.refreshState);
   }
 
   public forEach(
@@ -167,16 +178,8 @@ export class FieldObjectGroup<
     }
   }
 
-  public subField(field: TChildMap[keyof TChildMap]): void {
-    field.on(this.refreshState);
-  }
-
-  public unsubField(field: TChildMap[keyof TChildMap]): void {
-    field.off(this.refreshState);
-  }
-
   public reset = (): boolean => {
-    this.forEach((field) => {
+    this.forEach((field): void => {
       field.off(this.refreshState);
       field.reset();
       field.on(this.refreshState);

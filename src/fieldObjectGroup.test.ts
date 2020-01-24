@@ -2,8 +2,8 @@ import { sleep } from 'ts-jutil';
 import { Field } from './field';
 import { FieldObjectGroup } from './fieldObjectGroup';
 
-describe('FieldObjectGroup', () => {
-  it('text field', async () => {
+describe('FieldObjectGroup', (): void => {
+  it('text field', async (): Promise<void> => {
     const listener = jest.fn();
 
     const textField = new Field({
