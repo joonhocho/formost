@@ -1,6 +1,6 @@
 {
   "name": "formost",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Event based reactive form field model written in TypeScript",
   "keywords": [
     "form",
@@ -45,25 +45,25 @@
   },
   "pre-commit": "precommit",
   "dependencies": {
-    "ts-jutil": "^1.0.25"
+    "ts-jutil": "^1.1.1"
   },
   "peerDependencies": {
     "tslib": "^1.10.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.9.1",
-    "@types/node": "^13.5.0",
-    "coveralls": "^3.0.9",
-    "jest": "^25.1.0",
+    "@types/jest": "^25.2.1",
+    "@types/node": "^13.11.1",
+    "coveralls": "^3.0.11",
+    "jest": "^25.3.0",
     "pre-commit": "^1.2.2",
-    "prettier": "^1.19.1",
-    "ts-jest": "^25.0.0",
+    "prettier": "^2.0.4",
+    "ts-jest": "^25.3.1",
     "tscpaths": "^0.0.9",
     "tsdef": "^0.0.13",
-    "tslint": "^6.0.0",
+    "tslint": "^6.1.1",
     "tslint-config-airbnb": "^5.11.2",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.7.5"
+    "typescript": "^3.8.3"
   },
   "engines": {
     "node": ">=8.0.0"
