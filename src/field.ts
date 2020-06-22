@@ -157,11 +157,19 @@ export class Field<TValue, TInputValue, TError = any> extends StateEmitter<
     this.initialized = true;
   }
 
-  public setInputValue = (inputValue: TInputValue): boolean =>
-    this.setStateProp('inputValue', inputValue);
+  get value(): TValue {
+    return this._state.value;
+  }
+
+  set value(value: TValue) {
+    this.setStateProp('value', value);
+  }
 
   public setValue = (value: TValue): boolean =>
     this.setStateProp('value', value);
+
+  public setInputValue = (inputValue: TInputValue): boolean =>
+    this.setStateProp('inputValue', inputValue);
 
   public focus = (): boolean => this.setStateProp('focused', true);
 
